@@ -200,8 +200,9 @@ def criar_layout():
     historico = [
         [sg.Text('Histórico', font=('Helvetica', 14, 'bold'))],
         [sg.Listbox([], key='-HISTORICO-', size=(28, 14), font=('Consolas', 11),
-                    enable_events=True, no_scrollbar=True)],
-        [sg.Text('Clique em um item para reusar', font=('Helvetica', 9))],
+                    enable_events=True, no_scrollbar=True,
+                    background_color=COR_DISPLAY, text_color=COR_TEXTO_DISPLAY)],
+                            [sg.Text('Clique em um item para reusar', font=('Helvetica', 9))],
         [sg.Button('Limpar histórico', key='-LIMPAR_HIST-', expand_x=True)],
     ]
 
