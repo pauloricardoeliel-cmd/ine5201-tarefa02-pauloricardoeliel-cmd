@@ -40,3 +40,48 @@ ERRO_EXPRESSAO = 'Erro: Expressão inválida'
 ERRO_GRANDE = 'Erro: Número muito grande'
 
 
+# ============================== Entrada no display ==============================
+
+def numero_atual(expressao):
+    """Retorna o número que está sendo digitado (depois do último operador).
+
+    O '-' no início da expressão é sinal de número negativo, não operador,
+    por isso a busca começa na posição 1.
+    """
+    inicio = 0
+    for i in range(1, len(expressao)):
+        if expressao[i] in OPERADORES:
+            inicio = i + 1
+    return expressao[inicio:].lstrip('-')
+
+
+def adicionar_digito(expressao, digito):
+    """Acrescenta um dígito, trocando um '0' sozinho (evita '007')."""
+    if numero_atual(expressao) == '0':
+        return expressao[:-1] + digito
+    return expressao + digito
+
+
+def adicionar_ponto(expressao):
+    """Acrescenta o ponto decimal, no máximo um por número."""
+    atual = numero_atual(expressao)
+    if '.' in atual:
+        return expressao
+    if atual == '':
+        return expressao + '0.'
+    return expressao + '.'
+
+
+def adicionar_operador(expressao, operador):
+    """Acrescenta um operador validando a entrada.
+
+    - No início só é aceito '-' (número negativo).
+    - Dois operadores seguidos: o novo substitui o anterior.
+    """
+    if expressao in ('', '-'):
+        return '-' if operador == '-' else expressao
+    if expressao[-1] in OPERADORES:
+        return expressao[:-1] + operador
+    return expressao + operador
+
+
