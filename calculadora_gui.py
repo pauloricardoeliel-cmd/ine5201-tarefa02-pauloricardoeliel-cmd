@@ -85,3 +85,79 @@ def adicionar_operador(expressao, operador):
     return expressao + operador
 
 
+# ============================== Cálculo ==============================
+
+def separar_tokens(expressao):
+    """Transforma '12.5+3*-' em [Decimal('12.5'), '+', Decimal('3'), ...].
+
+    Lança ValueError se a expressão estiver mal formada
+    (por exemplo, terminar em operador).
+    """
+    tokens = []
+    numero = ''
+    for i, caractere in enumerate(expressao):
+        if caractere.isdigit() or caractere == '.':
+            numero += caractere
+        elif caractere == '-' and i == 0:
+            numero = '-'                        # sinal de número negativo
+        elif caractere in OPERADORES:
+            tokens.append(converter_numero(numero))
+            tokens.append(caractere)
+            numero = ''
+        else:
+            raise ValueError(f'Caractere inválido: {caractere}')
+    tokens.append(converter_numero(numero))
+    return tokens
+
+
+def converter_numero(texto):
+    """Converte o texto em Decimal ou lança ValueError."""
+    if texto in ('', '-', '.', '-.'):
+        raise ValueError('Número ausente')
+    return Decimal(texto)
+
+
+def formatar_numero(valor):
+    """Arredonda para 10 casas e tira os zeros à direita (2.50 -> 2.5)."""
+    if abs(valor) >= LIMITE_RESULTADO:
+        raise OverflowError('Resultado grande demais para o display')
+    valor = valor.quantize(CASAS_DECIMAIS, rounding=ROUND_HALF_UP)
+    texto = format(valor.normalize(), 'f')
+    return '0' if texto == '-0' else texto
+
+
+def calcular(expressao):
+    """Calcula a expressão respeitando a precedência (* e / antes de + e -).
+
+    Usa Decimal em vez de float para que 0.1 + 0.2 dê 0.3.
+    Lança ZeroDivisionError, OverflowError ou ValueError;
+    quem chama decide qual mensagem mostrar.
+    """
+    tokens = separar_tokens(expressao)
+
+    # 1ª passada: resolve * e / da esquerda para a direita
+    parcial = [tokens[0]]
+    for i in range(1, len(tokens), 2):
+        operador, numero = tokens[i], tokens[i + 1]
+        if operador == '*':
+            parcial[-1] = parcial[-1] * numero
+        elif operador == '/':
+            if numero == 0:
+                raise ZeroDivisionError('Divisão por zero')
+            parcial[-1] = parcial[-1] / numero
+        else:
+            parcial.append(operador)
+            parcial.append(numero)
+
+    # 2ª passada: resolve + e -
+    resultado = parcial[0]
+    for i in range(1, len(parcial), 2):
+        operador, numero = parcial[i], parcial[i + 1]
+        if operador == '+':
+            resultado = resultado + numero
+        else:
+            resultado = resultado - numero
+
+    return formatar_numero(resultado)
+
+
