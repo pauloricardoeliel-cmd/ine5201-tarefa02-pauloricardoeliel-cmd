@@ -161,3 +161,195 @@ def calcular(expressao):
     return formatar_numero(resultado)
 
 
+# ============================== Interface gráfica ==============================
+
+def botao(texto, chave, cores):
+    return sg.Button(texto, key=chave, size=(5, 2), font=('Helvetica', 16, 'bold'),
+                     button_color=cores, expand_x=True, pad=(3, 3))
+
+
+def criar_layout():
+    """Monta a calculadora (à esquerda) e o histórico (à direita)."""
+    def numero(digito):
+        return botao(digito, digito, COR_NUMERO)
+
+    def operador(simbolo):
+        return botao(simbolo, simbolo, COR_OPERADOR)
+
+    teclado = [
+        [botao('C', '-LIMPAR-', COR_LIMPAR), botao('←', '-APAGAR-', COR_OPERADOR),
+         operador('/')],
+        [numero('7'), numero('8'), numero('9'), operador('*')],
+        [numero('4'), numero('5'), numero('6'), operador('-')],
+        [numero('1'), numero('2'), numero('3'), operador('+')],
+        [numero('0'), numero('.'), botao('=', '-IGUAL-', COR_IGUAL)],
+    ]
+
+    calculadora = [
+        [sg.Text('', key='-CONTA-', size=(26, 1), justification='right',
+                 font=('Consolas', 12), background_color=COR_DISPLAY,
+                 text_color='#AAAAAA', pad=(3, 0))],
+        [sg.Text('0', key='-DISPLAY-', size=(24, 1), justification='right',
+                 font=('Consolas', 22, 'bold'), background_color=COR_DISPLAY,
+                 text_color=COR_TEXTO_DISPLAY, pad=(3, (0, 6)))],
+        [sg.Text('', key='-AVISO-', size=(30, 1), font=('Helvetica', 10),
+                 text_color=COR_ERRO)],
+        *teclado,
+    ]
+
+    historico = [
+        [sg.Text('Histórico', font=('Helvetica', 14, 'bold'))],
+        [sg.Listbox([], key='-HISTORICO-', size=(28, 14), font=('Consolas', 11),
+                    enable_events=True, no_scrollbar=True)],
+        [sg.Text('Clique em um item para reusar', font=('Helvetica', 9))],
+        [sg.Button('Limpar histórico', key='-LIMPAR_HIST-', expand_x=True)],
+    ]
+
+    return [[sg.Column(calculadora), sg.VSeparator(),
+             sg.Column(historico, vertical_alignment='top')]]
+
+
+def atualizar_display(window, valor, cor=COR_TEXTO_DISPLAY):
+    window['-DISPLAY-'].update(valor if valor else '0', text_color=cor)
+
+
+def mostrar_aviso(window, texto=''):
+    window['-AVISO-'].update(texto)
+
+
+def tratar_erro(window, estado, mensagem):
+    """Mostra o erro no display e prepara para começar uma conta nova."""
+    estado['expressao'] = ''
+    estado['resultado_na_tela'] = True
+    atualizar_display(window, mensagem, COR_ERRO)
+
+
+def adicionar_ao_historico(window, historico, expressao, resultado):
+    """Guarda o cálculo no topo da lista, mantendo só os MAX_HISTORICO últimos."""
+    historico.insert(0, f'{expressao} = {resultado}')
+    del historico[MAX_HISTORICO:]
+    window['-HISTORICO-'].update(historico)
+
+
+def traduzir_evento(event):
+    """Converte clique ou tecla em um símbolo da calculadora, ou None."""
+    if not isinstance(event, str):
+        return None
+    if event in ('-LIMPAR-', '-APAGAR-', '-IGUAL-'):
+        return event
+    if len(event) == 1:
+        if event in '0123456789.' or event in OPERADORES:
+            return event
+        if event == ',':                # vírgula do teclado numérico
+            return '.'
+        if event in ('=', '\r'):        # '\r' é o Enter no Windows
+            return '-IGUAL-'
+        return None
+    if event.startswith('Return'):
+        return '-IGUAL-'
+    if event.startswith('BackSpace'):
+        return '-APAGAR-'
+    if event.startswith('Escape'):
+        return '-LIMPAR-'
+    return None
+
+
+def processar_entrada(window, estado, historico, simbolo):
+    """Aplica um botão/tecla ao estado da calculadora."""
+    expressao = estado['expressao']
+    mostrar_aviso(window)
+
+    if simbolo == '-LIMPAR-':
+        estado['expressao'] = ''
+        estado['resultado_na_tela'] = False
+        window['-CONTA-'].update('')
+        atualizar_display(window, '')
+        return
+
+    if simbolo == '-APAGAR-':
+        if estado['resultado_na_tela']:
+            expressao = ''
+        estado['expressao'] = expressao[:-1]
+        estado['resultado_na_tela'] = False
+        atualizar_display(window, estado['expressao'])
+        return
+
+    if simbolo == '-IGUAL-':
+        tem_operador = any(c in OPERADORES for c in expressao[1:])
+        if not expressao or not tem_operador:
+            return
+        try:
+            resultado = calcular(expressao)
+        except ZeroDivisionError:
+            tratar_erro(window, estado, ERRO_DIVISAO)
+        except OverflowError:
+            tratar_erro(window, estado, ERRO_GRANDE)
+        except (ValueError, ArithmeticError):
+            tratar_erro(window, estado, ERRO_EXPRESSAO)
+        else:
+            adicionar_ao_historico(window, historico, expressao, resultado)
+            window['-CONTA-'].update(f'{expressao} =')
+            estado['expressao'] = resultado
+            estado['resultado_na_tela'] = True
+            atualizar_display(window, resultado)
+        return
+
+    # Dígito ou ponto depois de um resultado começa uma conta nova;
+    # operador depois de um resultado continua a conta a partir dele.
+    if estado['resultado_na_tela'] and simbolo not in OPERADORES:
+        expressao = ''
+    if simbolo in OPERADORES:
+        nova = adicionar_operador(expressao, simbolo)
+    elif simbolo == '.':
+        nova = adicionar_ponto(expressao)
+    else:
+        nova = adicionar_digito(expressao, simbolo)
+
+    if len(nova) > MAX_CARACTERES:
+        mostrar_aviso(window, f'Limite de {MAX_CARACTERES} caracteres')
+        return
+
+    estado['expressao'] = nova
+    estado['resultado_na_tela'] = False
+    window['-CONTA-'].update('')
+    atualizar_display(window, nova)
+
+
+# ============================== Programa principal ==============================
+
+def main():
+    sg.theme('Black')
+    window = sg.Window('INE5201 - Calculadora', criar_layout(), finalize=True,
+                       return_keyboard_events=True)
+    estado = {'expressao': '', 'resultado_na_tela': False}
+    historico = []
+
+    while True:
+        event, values = window.read()
+
+        if event == sg.WIN_CLOSED:
+            break
+
+        if event == '-LIMPAR_HIST-':
+            historico.clear()
+            window['-HISTORICO-'].update(historico)
+            continue
+
+        if event == '-HISTORICO-':
+            selecionado = values['-HISTORICO-']
+            if selecionado:
+                resultado = selecionado[0].split(' = ')[-1]
+                estado['expressao'] = resultado
+                estado['resultado_na_tela'] = True
+                atualizar_display(window, resultado)
+            continue
+
+        simbolo = traduzir_evento(event)
+        if simbolo is not None:
+            processar_entrada(window, estado, historico, simbolo)
+
+    window.close()
+
+
+if __name__ == '__main__':
+    main()
