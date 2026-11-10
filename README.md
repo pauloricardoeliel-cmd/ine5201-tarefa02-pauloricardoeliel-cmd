@@ -106,15 +106,15 @@ calculadora_gui.py
 
 ## Uso do GitHub Copilot
 
-<!-- PREENCHER com o que vocês realmente fizeram no VS Code. -->
+Usei o chat do GitHub Copilot no VS Code, no modo **Ask** (só perguntas, sem deixar ele alterar os arquivos), enquanto montava o código em etapas. Não pedi para ele criar a calculadora; selecionei funções prontas e pedi explicações ou melhorias.
 
 | Prompt | Função assistida | O que aproveitei ou mudei |
 |---|---|---|
-| "..." | | |
-| "..." | | |
-| "..." | | |
+| "Sugira melhorias para esta função que valida operadores seguidos em uma calculadora" | `adicionar_operador` | Descartei as duas sugestões. Validar o operador recebido era redundante, porque `traduzir_evento` só repassa `+ - * /`. Aceitar número negativo depois de operador (`5+(-3)`) complicaria a regra, então mantive "o novo operador substitui o anterior". |
+| "Explique como esta função calcular respeita a precedência dos operadores e quais exceções ela pode lançar" | `calcular` | Usei a explicação para entender as duas passadas (primeiro `*` e `/`, depois `+` e `-`) e as três exceções (`ZeroDivisionError`, `ValueError` e `OverflowError`). Não alterei o código. |
+| "Como mudar a cor de fundo e a cor do texto deste Listbox no FreeSimpleGUI?" | `criar_layout` (histórico) | Aceitei a sugestão de usar `background_color` e `text_color` com as constantes `COR_DISPLAY` e `COR_TEXTO_DISPLAY`, para o histórico ficar com as mesmas cores do display. |
 
-**Relato.** <!-- Um parágrafo: em quais funções o Copilot ajudou, uma sugestão aceita, uma corrigida ou descartada e por quê. -->
+**Relato.** O Copilot ajudou em três funções: `adicionar_operador`, `calcular` e `criar_layout`. Em `calcular`, a explicação me ajudou a entender como a precedência é respeitada em duas passadas e por que a função só lança exceções, deixando a mensagem de erro para `processar_entrada`. Aceitei a sugestão de mudar as cores do histórico com `background_color` e `text_color`, usando as constantes que já existiam no código, porque o fundo cinza destoava do display escuro. Descartei as sugestões para `adicionar_operador`: validar o operador era desnecessário, já que a interface só envia `+ - * /`, e aceitar número negativo depois de outro operador deixaria a regra de entrada mais complicada sem necessidade. Aprendi que uma sugestão pode estar certa em geral e mesmo assim não fazer sentido para o programa.
 
 ## Tecnologias
 
