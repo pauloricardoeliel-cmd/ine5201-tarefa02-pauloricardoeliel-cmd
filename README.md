@@ -43,6 +43,7 @@ O histórico, à direita, mostra os 10 últimos cálculos. Clicar em um item col
 - Botões 0-9, `.`, `+`, `-`, `*`, `/`, `=`, **C** e **←** no formato de calculadora física
 - Cores por tipo de botão: números em cinza, operadores em laranja, **C** em vermelho e **=** em verde
 - Histórico dos 10 últimos cálculos, com botão para limpar
+- Uso pelo teclado: números, operadores, Enter, Backspace e Esc
 
 **Cálculos**
 - As 4 operações, com precedência: `2+3*4` dá `14`
